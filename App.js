@@ -13,16 +13,16 @@ Ext.define('CustomApp', {
     defectColumn : {  
         text: "Defects", width:100, 
         renderer : function(value, metaData, record, rowIdx, colIdx, store, view) {
-            async.map([record],app.getSnapshots, function(err,results) {
-                var defects = results[0];
+            var defects = record.get("Defects");
+            if (defects && defects.length > 0) {
                 var states = _.countBy(defects, function(d) { 
                     return d.get("State")!= "Closed" ? "Open" : "Closed";
                 });
                 states.length = defects.length;
                 var tpl = Ext.create('Ext.Template', "{Open}/{length}", { compiled : true } );
-                record.set("Defects", defects.length > 0 ? tpl.apply(states) : "");
-            });
-            return record.get("Defects");
+                return tpl.apply(states);
+            } else
+                return "";
         }
     },
     
@@ -35,9 +35,15 @@ Ext.define('CustomApp', {
                  xtype: 'rallygrid',
                  model: userStoryModel,
                  listeners : {
-                     load : function(a,b) {
-                         console.log("load",a.data.items);
-                     }
+                    load : function(items) {
+                        console.log("load",items.data.items);
+                        var features = items.data.items;
+                        async.map(features,app.getSnapshots, function(err,results) {
+                            _.each( features, function(feature,i){
+                                feature.set("Defects",results[i]);
+                            })
+                        });
+                    }
                  },
                  columnCfgs: [
                      'FormattedID',
@@ -73,8 +79,8 @@ Ext.define('CustomApp', {
             listeners : {
                 scope : this,
                 load: function(store, snapshots, success) {
-                    console.log("success",success);
-                    console.log("completed snapshots:", snapshots.length);
+                    // console.log("success",success);
+                    // console.log("completed snapshots:", snapshots.length);
                     callback(null,snapshots);
                 }
             }
