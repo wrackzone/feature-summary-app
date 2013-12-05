@@ -1,0 +1,13 @@
+{
+   "name": "featuredefectsummary",
+   "className": "CustomApp",
+   "server": "https://rally1.rallydev.com",
+   "sdk": "2.0rc2",
+   "javascript": [
+      "App.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/async/0.2.7/async.min.js"
+   ],
+   "css": [
+      "app.css"
+   ]
+}

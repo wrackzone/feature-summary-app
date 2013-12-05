@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>featuredefectsummary</title>
+
+    <script type="text/javascript" src="/apps/2.0rc2/sdk.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/async/0.2.7/async.min.js"></script>
+
+    <script type="text/javascript">
+        Rally.onReady(function () {
+                var app = null;
+
+Ext.define('CustomApp', {
+    extend: 'Rally.app.App',
+    componentCls: 'app',
+    items:{ html:'<a href="https://help.rallydev.com/apps/2.0rc2/doc/">App SDK 2.0rc2 Docs</a>'},
+    launch: function() {
+        app = this;
+        //Write app code here
+        console.log("Hellow World!");
+        this.addFeatureGrid();
+    },
+    
+    addFeatureGrid : function() {
+        var viewport = Ext.create('Ext.Viewport');
+
+        Rally.data.ModelFactory.getModel({
+         type: 'PortfolioItem/Feature',
+         success: function(userStoryModel) {
+             viewport.add({
+                 xtype: 'rallygrid',
+                 model: userStoryModel,
+                 columnCfgs: [
+                     'FormattedID',
+                     'Name',
+                     'Owner',
+                     {  text: "Defects", width:40, 
+                        renderer : function(value, metaData, record, rowIdx, colIdx, store, view) {
+                            console.log(record); console.log("Feature:",record.get("ObjectID"));
+                            async.map([record.get("ObjectID")],function(err,results) {
+                               console.log("results",results[0]); 
+                            });
+                            return "none";
+                        }
+                    }
+                 ]
+             });
+         }
+        });
+    },
+    
+
+    getSnapshots : function(featureid, callback) {
+
+        var that = this;
+        var fetch = ['ObjectID','_UnformattedID','State','Priority','Severity','_ItemHierarchy','_TypeHierarchy'];
+        var hydrate = ['_TypeHierarchy','State','Priority','Severity'];
+        
+        var find = {
+                '_TypeHierarchy' : { "$in" : ["Defect"]} ,
+                '_ProjectHierarchy' : { "$in": app.getContext().getProject().ObjectID },
+                '__At' : 'current',
+                featureid : { "$in" : "_ItemHierarchy" }
+        };
+
+        var storeConfig = {
+            find : find,
+            autoLoad : true,
+            pageSize:1000,
+            limit: 'Infinity',
+            fetch: fetch,
+            hydrate: hydrate,
+            listeners : {
+                scope : this,
+                load: function(store, snapshots, success) {
+                    console.log("success",success);
+                    console.log("completed snapshots:", snapshots.length);
+                    callback(null,snapshots);
+                }
+            }
+        };
+
+        var snapshotStore = Ext.create('Rally.data.lookback.SnapshotStore', storeConfig);
+
+    }
+    
+});
+
+
+            Rally.launchApp('CustomApp', {
+                name:"featuredefectsummary",
+	            parentRepos:""
+            });
+
+        });
+    </script>
+
+
+    <style type="text/css">
+        .app {
+     /* Add app styles here */
+}
+
+    </style>
+</head>
+<body></body>
+</html>
