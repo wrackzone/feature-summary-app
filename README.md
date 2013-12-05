@@ -3,6 +3,9 @@ featuredefectsummary
 
 ## Overview
 
+A grid of features showing defects (open/count) associated with each feature.
+
+![alt text](https://raw.github.com/wrackzone/feature-defect-summary/master/screenshot.png)
 
 ## License
 
