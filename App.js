@@ -9,6 +9,22 @@ Ext.define('CustomApp', {
         console.log("Hello World!");
         this.addFeatureGrid();
     },
+
+    defectColumn : {  
+        text: "Defects", width:100, 
+        renderer : function(value, metaData, record, rowIdx, colIdx, store, view) {
+            async.map([record],app.getSnapshots, function(err,results) {
+                var defects = results[0];
+                var states = _.countBy(defects, function(d) { 
+                    return d.get("State")!= "Closed" ? "Open" : "Closed";
+                });
+                states.length = defects.length;
+                var tpl = Ext.create('Ext.Template', "{Open}/{length}", { compiled : true } );
+                record.set("Defects", defects.length > 0 ? tpl.apply(states) : "");
+            });
+            return record.get("Defects");
+        }
+    },
     
     addFeatureGrid : function() {
         var viewport = Ext.create('Ext.Viewport');
@@ -27,21 +43,7 @@ Ext.define('CustomApp', {
                      'FormattedID',
                      'Name',
                      'Owner',
-                     {  text: "Defects", width:100, 
-                        renderer : function(value, metaData, record, rowIdx, colIdx, store, view) {
-                            async.map([record],app.getSnapshots, function(err,results) {
-                                var defects = results[0];
-                                var states = _.countBy(defects, function(d) { 
-                                    return d.get("State")!= "Closed" ? "Open" : "Closed";
-                                });
-                                states.length = defects.length;
-                                var tpl = Ext.create('Ext.Template', "{Open}/{length}", { compiled : true } );
-
-                                record.set("Defects", defects.length > 0 ? tpl.apply(states) : "");
-                            });
-                            return record.get("Defects");
-                        }
-                    }
+                     app.defectColumn
                  ]
              });
          }
