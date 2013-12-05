@@ -6,8 +6,7 @@ Ext.define('CustomApp', {
     items:{ html:'<a href="https://help.rallydev.com/apps/2.0rc2/doc/">App SDK 2.0rc2 Docs</a>'},
     launch: function() {
         app = this;
-        //Write app code here
-        console.log("Hellow World!");
+        console.log("Hello World!");
         this.addFeatureGrid();
     },
     

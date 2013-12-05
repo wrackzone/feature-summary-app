@@ -16,31 +16,40 @@ Ext.define('CustomApp', {
     items:{ html:'<a href="https://help.rallydev.com/apps/2.0rc2/doc/">App SDK 2.0rc2 Docs</a>'},
     launch: function() {
         app = this;
-        //Write app code here
-        console.log("Hellow World!");
+        console.log("Hello World!");
         this.addFeatureGrid();
     },
     
     addFeatureGrid : function() {
         var viewport = Ext.create('Ext.Viewport');
-
         Rally.data.ModelFactory.getModel({
          type: 'PortfolioItem/Feature',
          success: function(userStoryModel) {
              viewport.add({
                  xtype: 'rallygrid',
                  model: userStoryModel,
+                 listeners : {
+                     load : function(a,b) {
+                         console.log("load",a.data.items);
+                     }
+                 },
                  columnCfgs: [
                      'FormattedID',
                      'Name',
                      'Owner',
-                     {  text: "Defects", width:40, 
+                     {  text: "Defects", width:100, 
                         renderer : function(value, metaData, record, rowIdx, colIdx, store, view) {
-                            console.log(record); console.log("Feature:",record.get("ObjectID"));
-                            async.map([record.get("ObjectID")],function(err,results) {
-                               console.log("results",results[0]); 
+                            async.map([record],app.getSnapshots, function(err,results) {
+                                var defects = results[0];
+                                var states = _.countBy(defects, function(d) { 
+                                    return d.get("State")!= "Closed" ? "Open" : "Closed";
+                                });
+                                states.length = defects.length;
+                                var tpl = Ext.create('Ext.Template', "{Open}/{length}", { compiled : true } );
+
+                                record.set("Defects", defects.length > 0 ? tpl.apply(states) : "");
                             });
-                            return "none";
+                            return record.get("Defects");
                         }
                     }
                  ]
@@ -49,8 +58,7 @@ Ext.define('CustomApp', {
         });
     },
     
-
-    getSnapshots : function(featureid, callback) {
+    getSnapshots : function(record, callback) {
 
         var that = this;
         var fetch = ['ObjectID','_UnformattedID','State','Priority','Severity','_ItemHierarchy','_TypeHierarchy'];
@@ -60,7 +68,7 @@ Ext.define('CustomApp', {
                 '_TypeHierarchy' : { "$in" : ["Defect"]} ,
                 '_ProjectHierarchy' : { "$in": app.getContext().getProject().ObjectID },
                 '__At' : 'current',
-                featureid : { "$in" : "_ItemHierarchy" }
+                "_ItemHierarchy" : { "$in" : record.get("ObjectID")  }
         };
 
         var storeConfig = {
