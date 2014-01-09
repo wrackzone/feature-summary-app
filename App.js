@@ -18,6 +18,8 @@ Ext.define('CustomApp', {
                 var states = _.countBy(defects, function(d) { 
                     return d.get("State")!= "Closed" ? "Open" : "Closed";
                 });
+                states.Open = states.Open !== undefined ? states.Open : 0;
+                    states.Open = 0 
                 states.length = defects.length;
                 var tpl = Ext.create('Ext.Template', "{Open}/{length}", { compiled : true } );
                 return tpl.apply(states);
