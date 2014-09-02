@@ -13,7 +13,7 @@
 Ext.define('CustomApp', {
     extend: 'Rally.app.App',
     componentCls: 'app',
-    items:{ html:'<a href="https://help.rallydev.com/apps/2.0rc2/doc/">App SDK 2.0rc2 Docs</a>'},
+    items:{},
     launch: function() {
         app = this;
         console.log("Hello World!");
@@ -37,13 +37,21 @@ Ext.define('CustomApp', {
                 return "";
         }
     },
+
+    blockedColumn : {  
+        text: "Blocked", width:100, 
+        renderer : function(value, metaData, record, rowIdx, colIdx, store, view) {
+            var blockedSnapshots = record.get("Blocked");
+            return (!_.isUndefined(blockedSnapshots) && blockedSnapshots.length > 0) ? blockedSnapshots.length : "";
+        }
+    },
     
     addFeatureGrid : function() {
-        var viewport = Ext.create('Ext.Viewport');
+        // var viewport = Ext.create('Ext.Viewport');
         Rally.data.ModelFactory.getModel({
          type: 'PortfolioItem/Feature',
          success: function(userStoryModel) {
-             viewport.add({
+             app.add({
                  xtype: 'rallygrid',
                  model: userStoryModel,
                  listeners : {
@@ -54,14 +62,27 @@ Ext.define('CustomApp', {
                             _.each( features, function(feature,i){
                                 feature.set("Defects",results[i]);
                             })
+                            async.map(features,app.getBlockedSnapshots, function(err,results) {
+                                _.each( features, function(feature,i){
+                                    feature.set("Blocked",results[i]);
+                                })
+                            });
                         });
+                        // console.log("store",this.store);
+                        // console.log("columns",this.getColumnCfgs());
+                        // var cols = this.getColumnCfgs();
+                        // cols.push(app.defectColumn);
+                        // cols.push(app.blockedColumn);
+                        // this.reconfigureWithColumns(cols);
+
                     }
                  },
                  columnCfgs: [
-                     'FormattedID',
-                     'Name',
-                     'Owner',
-                     app.defectColumn
+                    'FormattedID',
+                    'Name',
+                    'Owner',
+                    app.defectColumn,
+                    app.blockedColumn
                  ]
              });
          }
@@ -76,9 +97,9 @@ Ext.define('CustomApp', {
         
         var find = {
                 '_TypeHierarchy' : { "$in" : ["Defect"]} ,
-                '_ProjectHierarchy' : { "$in": app.getContext().getProject().ObjectID },
+                '_ProjectHierarchy' : { "$in": [app.getContext().getProject().ObjectID] },
                 '__At' : 'current',
-                "_ItemHierarchy" : { "$in" : record.get("ObjectID")  }
+                "_ItemHierarchy" : { "$in" : [record.get("ObjectID")]  }
         };
 
         var storeConfig = {
@@ -91,8 +112,38 @@ Ext.define('CustomApp', {
             listeners : {
                 scope : this,
                 load: function(store, snapshots, success) {
-                    // console.log("success",success);
-                    // console.log("completed snapshots:", snapshots.length);
+                    callback(null,snapshots);
+                }
+            }
+        };
+
+        var snapshotStore = Ext.create('Rally.data.lookback.SnapshotStore', storeConfig);
+
+    },
+
+    getBlockedSnapshots : function(record, callback) {
+
+        var that = this;
+        var fetch = ['_TypeHierarchy','FormattedID','ObjectID','_UnformattedID','Name','Owner','Blocked','ScheduleState'];
+        var hydrate = ['_TypeHierarchy','ScheduleState'];
+        
+        var find = {
+                '_TypeHierarchy' : { "$in" : ["Defect","HierarchicalRequirement"]},
+                '__At' : 'current',
+                "_ItemHierarchy" : { "$in" : [record.get("ObjectID")]  },
+                'Blocked' : true
+        };
+
+        var storeConfig = {
+            find : find,
+            autoLoad : true,
+            pageSize:1000,
+            limit: 'Infinity',
+            fetch: fetch,
+            hydrate: hydrate,
+            listeners : {
+                scope : this,
+                load: function(store, snapshots, success) {
                     callback(null,snapshots);
                 }
             }
@@ -101,6 +152,7 @@ Ext.define('CustomApp', {
         var snapshotStore = Ext.create('Rally.data.lookback.SnapshotStore', storeConfig);
 
     }
+
     
 });
 
@@ -116,10 +168,11 @@ Ext.define('CustomApp', {
 
     <style type="text/css">
         .app {
-     /* Add app styles here */
+  /* Add app styles here */
 }
 
     </style>
 </head>
-<body></body>
+<body>
+</body>
 </html>
