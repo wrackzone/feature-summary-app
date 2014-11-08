@@ -48,6 +48,7 @@ Ext.define('CustomApp', {
 
     launch: function() {
         app = this;
+        app.iterations = null;
         app.showBlocked = app.getSetting("showBlocked");
         app.showDefects = app.getSetting("showDefects");
         app.showTime = app.getSetting("showTime");
@@ -65,6 +66,7 @@ Ext.define('CustomApp', {
         console.log("Release",app.releaseName);
         
         this.addFeatureGrid();
+
     },
 
     timeColumn : {  
@@ -149,12 +151,7 @@ Ext.define('CustomApp', {
         text: "Dependencies", width:600, 
         renderer : function(value, metaData, record, rowIdx, colIdx, store, view) {
             var snapshots = record.get("Dependencies");
-            // if (snapshots!==undefined)
-                // console.log(record.get("FormattedID"),snapshots.length,
-                //     snapshots.length>0 ? snapshots[0].get("FormattedID") : "",
-                //     snapshots.length>0 ? _.map(snapshots[0].get("PredStories"),function(s){return s.get("FormattedID");}):"");
             var s = app.renderDependencyTable(record);
-            // console.log("html",s);
             return s.replace(/\,/g,"");
         }
     },
@@ -166,15 +163,18 @@ Ext.define('CustomApp', {
         var s = 
         "<table class='financial'>" +
             _.map(snapshots,function(fstory) {
-                console.log("fstory link",app.renderId(fstory));
                 // app.renderId(fstory) +
                 return "<tr><td>" +  app.renderId(fstory) + " : " + fstory.get("Name") +"</td>" +
                 "<td><table>" +
                 _.map(fstory.get("PredStories"),function(pstory){
-                    return "<tr><td> " + app.renderId(pstory) + " : " + pstory.get("Name") + 
-                    app.renderProject(fstory,pstory)+
-                    app.renderState(pstory) +
-                    "</td></tr>";
+                    var it = app.getIteration(pstory);
+                    return "<tr>" + 
+                    "<td>" + app.renderState(pstory) + "</td>" +
+                    "<td>" + app.renderId(pstory) + " : " + pstory.get("Name") + app.renderProject(fstory,pstory)+ "</td>" +
+                    // "<td>" + app.getIteration(app.refToOid(pstory.get("Iteration")._ref)).get("EndDate") + "</td>" +
+                    (( it!==undefined && !_.isNull(it) ) ? "<td>" + it.get("EndDate") + "</td>" : "") +
+                    
+                    "</tr>";
                 }) +
                 "</table></td></tr>"
             }) +
@@ -183,10 +183,14 @@ Ext.define('CustomApp', {
         return s;
     },
 
+    refToOid : function(ref) {
+        return new Rally.util.Ref(ref).getOid(); // wsapi
+    },
+
     renderProject : function(story,pred) {
         // only render the project name if it is not the same
         var fStoryID = story.get("Project"); // snapshot
-        var pStoryID = new Rally.util.Ref(pred.get("Project")._ref).getOid(); // wsapi
+        var pStoryID = app.refToOid(pred.get("Project")._ref);
         return fStoryID !== pStoryID ?  " (" + pred.get("Project")._refObjectName+")" : "";
     },
 
@@ -210,14 +214,12 @@ Ext.define('CustomApp', {
                 '>' + fid + 
                 '</a>';
         }
-        // console.log("link",l.replace(/\"/g,"'"));
         return l.replace(/\"/g,"'");
     },
 
     // creates a filter to return all releases with a specified set of names
     createReleaseFilter : function(releaseNames) {
 
-        console.log("releaseNames",releaseNames.split(","));
 
         var filter = null;
 
@@ -230,7 +232,6 @@ Ext.define('CustomApp', {
             }
         });
 
-        console.log("Release Filter:",filter.toString());
         return filter;
 
     },
@@ -272,6 +273,7 @@ Ext.define('CustomApp', {
 
             var grid = Ext.create('Rally.ui.grid.Grid',
                 {
+                itemId : 'mygrid',
                 height : 800,
                  xtype: 'rallygrid',
                  model: userStoryModel,
@@ -279,8 +281,10 @@ Ext.define('CustomApp', {
                     filters : app.releaseName !== null  ? [app.createReleaseFilter(app.releaseName)] : null
                  },
                  listeners : {
+                    afterrender : function() {
+
+                    },
                     load : function(items) {
-                        console.log("load",items.data.items);
                         var features = items.data.items;
 
                         async.series( [
@@ -301,33 +305,43 @@ Ext.define('CustomApp', {
                             },
                             function(callback) {
                                 async.map(features,app.getDependencySnapshots, function(err,results) {
-
                                     async.mapSeries(results,app.readPredecessors,function(err,preds) {
-                                            callback(null,results);
+                                        callback(null,results);
                                     })
                                 });
                             }
 
                         ], function(err,results) {
                             // indices: 0 Defects, 1 Blocked, 2 Tasks, 3 Dependencies
-                            // console.log("results",err,results);
                             _.each( features, function( feature,i){
                                 feature.set("Defects",      results[0][i]);
                                 feature.set("Blocked",      results[1][i]);
                                 feature.set("Tasks",        results[2][i]);
                                 feature.set("Dependencies", results[3][i]);
-                            })
+                            });
+
+                            if (app.iterations === null) {
+                                app.loadIterations(features,function(){
+                                    grid.fireEvent("iterationsLoaded");
+                                });
+                            }
+
+                            
                         });
                     }
                  },
                  columnCfgs: columnCfgs
              });
-            console.log(app.showTime);
             if (app.showTime) {
                 grid.columnCfgs.push(app.timeColumn);
             }
 
             app.add(grid);
+
+            grid.on('iterationsLoaded',function(){
+                grid.store.reload();
+            })
+
         }
         });
     }
@@ -367,6 +381,61 @@ Ext.define('CustomApp', {
             callback(null,results[0]);
         });
     },
+
+    // read a single story based on id
+    readIteration : function( id, callback) {
+         var configs = [
+            { 
+                model : "Iteration",
+                fetch : true,
+                filters : [{property:"ObjectID",operator:"=",value:id}],
+                context : {
+                    project : null
+                }
+            }
+        ];
+
+        async.map( configs, app.wsapiQuery, function(err,results) {
+            callback(null,results[0]);
+        });
+    },
+
+    getIteration : function(story) {
+        var id = null;
+        if (!_.isUndefined(story.get("_ref"))) {
+            var ref = story.get("Iteration") !== null ? story.get("Iteration")._ref : null;
+            if (ref===null)
+                return null;
+            id = app.refToOid(ref);
+        } else {
+            id = story.get("Iteration") // snapshot
+        }
+
+        return _.find(app.iterations,function(i) {
+            return i.get("ObjectID")===id;
+        });
+    },
+
+    loadIterations : function(features,callback) {
+
+        var iterations = _.map(features,function(f) {
+            var dIterations = _.map(f.get("Dependencies"),function(d) {
+                var pIterations = _.map(d.get("PredStories"), function(ps) {
+                    var ref = ps.get("Iteration")!==null?ps.get("Iteration")._ref : null;
+                    return (ref!==null) ? app.refToOid(ref) : null;
+                });
+                return [d.get("Iteration")].concat(pIterations);
+            });
+            return dIterations;
+        });
+        var itOids = _.compact(_.uniq(_.flatten(iterations)));
+        async.map(itOids,app.readIteration,function(err,its) {
+            app.iterations = _.flatten(its);
+            console.log("its",app.iterations);
+            callback(app.iterations);
+        });
+
+    },           
     
     getDefectSnapshots : function(record, callback) {
 
@@ -497,7 +566,7 @@ Ext.define('CustomApp', {
     getDependencySnapshots : function(record, callback) {
 
         var that = this;
-        var fetch = ['ObjectID','Estimate','ToDo','Actuals','_ItemHierarchy','_TypeHierarchy','Predecessors','Successors','Name','FormattedID','ScheduleState','PlanEstimate',"Workspace",'Project'];
+        var fetch = ['ObjectID','Estimate','ToDo','Actuals','_ItemHierarchy','_TypeHierarchy','Predecessors','Successors','Name','FormattedID','ScheduleState','PlanEstimate',"Workspace",'Project','Iteration'];
         var hydrate = ['_TypeHierarchy','ScheduleState'];
         
         var find = {
@@ -557,10 +626,7 @@ Ext.define('CustomApp', {
             );
             filter = (i===0) ? f : filter.or(f);
         });
-
-        console.log("Time Filter:",filter.toString());
         return filter;
-
     },
 
     wsapiQuery : function( config , callback ) {
