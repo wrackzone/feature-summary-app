@@ -7,14 +7,27 @@ Ext.define('CustomApp', {
 
     config: {
         defaultSettings : {
+            showDefects : false,
+            showBlocked : false,
             showTime : false,
-            showTasks : true,
+            showTasks : false,
             showDependencies : true
         }
     },
 
     getSettingsFields: function() {
         return [
+            {
+                name: 'showDefects',
+                xtype: 'rallycheckboxfield',
+                label : "Selected to show Defects column"
+            },
+            {
+                name: 'showBlocked',
+                xtype: 'rallycheckboxfield',
+                label : "Selected to show Blocked column"
+            },
+
             {
                 name: 'showTime',
                 xtype: 'rallycheckboxfield',
@@ -35,6 +48,8 @@ Ext.define('CustomApp', {
 
     launch: function() {
         app = this;
+        app.showBlocked = app.getSetting("showBlocked");
+        app.showDefects = app.getSetting("showDefects");
         app.showTime = app.getSetting("showTime");
         app.showTasks = app.getSetting("showTasks");
         app.showDependencies = app.getSetting("showDependencies");
@@ -131,15 +146,72 @@ Ext.define('CustomApp', {
     },
 
     dependenciesColumn : {  
-        text: "Dependencies", width:100, 
+        text: "Dependencies", width:600, 
         renderer : function(value, metaData, record, rowIdx, colIdx, store, view) {
             var snapshots = record.get("Dependencies");
-            if (snapshots!==undefined)
-                console.log(record.get("FormattedID"),snapshots.length,
-                    snapshots.length>0 ? snapshots[0].get("FormattedID") : "",
-                    snapshots.length>0 ? _.map(snapshots[0].get("PredStories"),function(s){return s.get("FormattedID");}):"");
-            return (!_.isUndefined(snapshots) && snapshots.length > 0) ? snapshots.length : "";
+            // if (snapshots!==undefined)
+                // console.log(record.get("FormattedID"),snapshots.length,
+                //     snapshots.length>0 ? snapshots[0].get("FormattedID") : "",
+                //     snapshots.length>0 ? _.map(snapshots[0].get("PredStories"),function(s){return s.get("FormattedID");}):"");
+            var s = app.renderDependencyTable(record);
+            // console.log("html",s);
+            return s.replace(/\,/g,"");
         }
+    },
+
+    renderDependencyTable : function(feature) {
+        var snapshots = feature.get("Dependencies");
+        if (snapshots===undefined)
+            return ".";
+        var s = 
+        "<table class='financial'>" +
+            _.map(snapshots,function(fstory) {
+                console.log("fstory link",app.renderId(fstory));
+                // app.renderId(fstory) +
+                return "<tr><td>" +  app.renderId(fstory) + " : " + fstory.get("Name") +"</td>" +
+                "<td><table>" +
+                _.map(fstory.get("PredStories"),function(pstory){
+                    return "<tr><td> " + app.renderId(pstory) + " : " + pstory.get("Name") + 
+                    app.renderProject(fstory,pstory)+
+                    app.renderState(pstory) +
+                    "</td></tr>";
+                }) +
+                "</table></td></tr>"
+            }) +
+
+            "</table>"
+        return s;
+    },
+
+    renderProject : function(story,pred) {
+        // only render the project name if it is not the same
+        var fStoryID = story.get("Project"); // snapshot
+        var pStoryID = new Rally.util.Ref(pred.get("Project")._ref).getOid(); // wsapi
+        return fStoryID !== pStoryID ?  " (" + pred.get("Project")._refObjectName+")" : "";
+    },
+
+    renderState : function(story) {
+        var cls = story.get("Blocked") === true ? 'state-legend-blocked' : 'state-legend';
+        return "<span class='"+cls+"'>" + story.get("ScheduleState").charAt(0) + "</span>";
+    },
+
+    renderId : function(story) {
+        var fid = story.get("FormattedID");
+        var ref = story.get("_ref");
+        var l = "null";
+        if (!_.isUndefined(ref)) {
+            l = Rally.nav.DetailLink.getLink({record:story,text:fid});
+        } else {
+            // https://rally1.rallydev.com/#/24946380142d/detail/userstory/25125186736
+            l = '<a href="https://rally1.rallydev.com/#/' + 
+                story.get("Workspace") + 
+                '/detail/userstory/' + 
+                story.get("ObjectID") + '"' +
+                '>' + fid + 
+                '</a>';
+        }
+        // console.log("link",l.replace(/\"/g,"'"));
+        return l.replace(/\"/g,"'");
     },
 
     // creates a filter to return all releases with a specified set of names
@@ -176,12 +248,16 @@ Ext.define('CustomApp', {
          success: function(userStoryModel) {
 
             var columnCfgs = [
-                    'FormattedID',
-                    'Name',
-                    'Owner',
-                    app.defectColumn,
-                    app.blockedColumn
+                    { dataIndex : 'FormattedID', text: 'ID', width : 10},
+                    { dataIndex : 'Name', width : 50},
+                    { dataIndex : 'Owner', width : 25 }
             ];
+            if (app.showDefects) {
+                columnCfgs.push(app.defectColumn);
+            }
+            if (app.showBlocked) {
+                columnCfgs.push(app.blockedColumn);
+            }
             if (app.showTime) {
                 columnCfgs.push(app.timeColumn);
             }
@@ -196,6 +272,7 @@ Ext.define('CustomApp', {
 
             var grid = Ext.create('Rally.ui.grid.Grid',
                 {
+                height : 800,
                  xtype: 'rallygrid',
                  model: userStoryModel,
                  storeConfig : {
@@ -278,7 +355,11 @@ Ext.define('CustomApp', {
             { 
                 model : "HierarchicalRequirement",
                 fetch : true,
-                filters : [{property:"ObjectID",operator:"=",value:id}]
+                filters : [{property:"ObjectID",operator:"=",value:id}],
+                // context required so it searches the full workspace
+                context : {
+                    project : null
+                }
             }
         ];
 
@@ -416,7 +497,7 @@ Ext.define('CustomApp', {
     getDependencySnapshots : function(record, callback) {
 
         var that = this;
-        var fetch = ['ObjectID','Estimate','ToDo','Actuals','_ItemHierarchy','_TypeHierarchy','Predecessors','Successors','Name','FormattedID','ScheduleState','PlanEstimate'];
+        var fetch = ['ObjectID','Estimate','ToDo','Actuals','_ItemHierarchy','_TypeHierarchy','Predecessors','Successors','Name','FormattedID','ScheduleState','PlanEstimate',"Workspace",'Project'];
         var hydrate = ['_TypeHierarchy','ScheduleState'];
         
         var find = {
@@ -485,6 +566,7 @@ Ext.define('CustomApp', {
     wsapiQuery : function( config , callback ) {
 
         Ext.create('Rally.data.WsapiDataStore', {
+            context : config.context,
             autoLoad : true,
             limit : "Infinity",
             model : config.model,

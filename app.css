@@ -1,3 +1,71 @@
 .app {
      /* Add app styles here */
 }
+
+
+/* financial or timetable */
+
+body {
+	font-family: Arial, Verdana, sans-serif;
+	color: #111111;}
+
+table.financial {
+	width: 500px;
+	/*height: 100px;*/
+}
+
+.financial th, .financial td {
+	border:1px solid #c6c6c6; /* #99bce8; /* #427BD6; */
+
+	padding: 3px 5px 5px 5px;}
+
+.financial th {
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	font-size: 90%;
+	border-bottom: 2px solid #111111;
+	border-top: 1px solid #999;
+	text-align: left;}
+
+.financial tr.even {
+	background-color: #efefef;}
+
+.financial tr:hover {
+	background-color: #c3e6e5;}
+
+.financial tfoot td {
+	border-top: 2px solid #111111;
+	border-bottom: 1px solid #999;}
+
+.money {
+	text-align: right;}
+
+.state-legend {
+        background: #006600 none repeat scroll 0%;
+        margin-right: 10px;
+        border: 1px solid #DDDDDD;
+        color: #FFFFFF;
+        cursor: default;
+        float: left;
+        height: 14px;
+        line-height: 14px;
+        margin-right: 1px;
+        text-align: center;
+        width: 14px;
+    }
+
+.state-legend-blocked {
+    background: transparent url(https://rally1.rallydev.com/slm/images/icon_blocked.gif) no-repeat scroll 0%;
+    margin-right: 10px;
+    color: #FFFFFF;
+    cursor: default;
+    display: inline;
+    float: left;
+    height: 16px;
+    line-height: 16px;
+    margin-right: 1px;
+    text-align: center;
+    width: 16px;
+}
+
+
