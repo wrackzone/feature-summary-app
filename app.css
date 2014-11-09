@@ -68,4 +68,14 @@ table.financial {
     width: 16px;
 }
 
+.iteration-none {
+    background-color: #ECF6CE;
+}
+.iteration-late {
+    background-color: #FA8258;
+}
+.iteration-good {
+    background-color: #3ADF00;
+}
+
 

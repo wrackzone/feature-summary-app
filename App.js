@@ -171,9 +171,7 @@ Ext.define('CustomApp', {
                     return "<tr>" + 
                     "<td>" + app.renderState(pstory) + "</td>" +
                     "<td>" + app.renderId(pstory) + " : " + pstory.get("Name") + app.renderProject(fstory,pstory)+ "</td>" +
-                    // "<td>" + app.getIteration(app.refToOid(pstory.get("Iteration")._ref)).get("EndDate") + "</td>" +
-                    (( it!==undefined && !_.isNull(it) ) ? "<td>" + it.get("EndDate") + "</td>" : "") +
-                    
+                    "<td>" + app.renderPredecessorIterationDate(fstory,pstory) + "</td>" +
                     "</tr>";
                 }) +
                 "</table></td></tr>"
@@ -215,6 +213,26 @@ Ext.define('CustomApp', {
                 '</a>';
         }
         return l.replace(/\"/g,"'");
+    },
+
+    renderPredecessorIterationDate : function(fstory,pstory) {
+        var fit = app.getIteration(fstory);
+        var pit = app.getIteration(pstory);
+
+        if (pit===null) return "<span class = 'iteration-none'>(None)</span>";
+
+        var pdt = Rally.util.DateTime.fromIsoString(pit.get("EndDate"));
+        var pdv = (pdt.getMonth()+1) + "/" + pdt.getDate();
+
+        var fdt = Rally.util.DateTime.fromIsoString(fit.get("EndDate"));
+        
+        if (fdt===null) {
+            return "<span>" + pdv + "</span>";
+        }
+
+        return pdt > fdt ? "<span class='iteration-late'>" + pdv + "</span>" :
+            "<span class='iteration-good'>" + pdv + "</span>"
+
     },
 
     // creates a filter to return all releases with a specified set of names
@@ -411,9 +429,14 @@ Ext.define('CustomApp', {
             id = story.get("Iteration") // snapshot
         }
 
-        return _.find(app.iterations,function(i) {
+        var it = _.find(app.iterations,function(i) {
             return i.get("ObjectID")===id;
         });
+
+        if (_.isUndefined(it))
+            return null;
+        else
+            return it;       
     },
 
     loadIterations : function(features,callback) {
