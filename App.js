@@ -47,6 +47,7 @@ Ext.define('CustomApp', {
     },
 
     launch: function() {
+        console.log("launch");
         app = this;
         app.iterations = null;
         app.showBlocked = app.getSetting("showBlocked");
@@ -58,10 +59,10 @@ Ext.define('CustomApp', {
 
         var timeboxScope = this.getContext().getTimeboxScope();
         if (timeboxScope) {
-            app.releaseName = timeboxScope.getType() === 'iteration' ? 
-                record.get('Name') : null;
+            var record = timeboxScope.getRecord();
+            app.releaseName = timeboxScope.getType() === 'release' ? record.get('Name') : null;
         } else {
-            app.releaseName = "Release 1"
+            app.releaseName = "PSI 6"
         }
         console.log("Release",app.releaseName);
         
@@ -148,7 +149,7 @@ Ext.define('CustomApp', {
     },
 
     dependenciesColumn : {  
-        text: "Dependencies", width:600, 
+        text: "Dependencies", width:500, flex : 1,
         renderer : function(value, metaData, record, rowIdx, colIdx, store, view) {
             var snapshots = record.get("Dependencies");
             var s = app.renderDependencyTable(record);
@@ -224,11 +225,15 @@ Ext.define('CustomApp', {
         var pdt = Rally.util.DateTime.fromIsoString(pit.get("EndDate"));
         var pdv = (pdt.getMonth()+1) + "/" + pdt.getDate();
 
+        if (fit===null) {
+            return "<span>" + pdv + "</span>";
+        } 
+        
         var fdt = Rally.util.DateTime.fromIsoString(fit.get("EndDate"));
         
-        if (fdt===null) {
-            return "<span>" + pdv + "</span>";
-        }
+        // if (fdt===null) {
+        //     return "<span>" + pdv + "</span>";
+        // }
 
         return pdt > fdt ? "<span class='iteration-late'>" + pdv + "</span>" :
             "<span class='iteration-good'>" + pdv + "</span>"
@@ -267,9 +272,9 @@ Ext.define('CustomApp', {
          success: function(userStoryModel) {
 
             var columnCfgs = [
-                    { dataIndex : 'FormattedID', text: 'ID', width : 10},
-                    { dataIndex : 'Name', width : 50},
-                    { dataIndex : 'Owner', width : 25 }
+                    { dataIndex : 'FormattedID', text: 'ID', width : 10,flex:1},
+                    { dataIndex : 'Name', width : 150,flex:1},
+                    { dataIndex : 'Owner', width : 100, flex:1 }
             ];
             if (app.showDefects) {
                 columnCfgs.push(app.defectColumn);
