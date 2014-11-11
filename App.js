@@ -41,7 +41,7 @@ Ext.define('CustomApp', {
             {
                 name: 'showDependencies',
                 xtype: 'rallycheckboxfield',
-                label : "Selected to show Task columns"
+                label : "Selected to show Dependencies columns"
             }
         ];
     },
@@ -62,7 +62,7 @@ Ext.define('CustomApp', {
             var record = timeboxScope.getRecord();
             app.releaseName = timeboxScope.getType() === 'release' ? record.get('Name') : null;
         } else {
-            app.releaseName = "PSI 6"
+            app.releaseName = ""
         }
         console.log("Release",app.releaseName);
         
@@ -165,7 +165,7 @@ Ext.define('CustomApp', {
         "<table class='financial'>" +
             _.map(snapshots,function(fstory) {
                 // app.renderId(fstory) +
-                return "<tr><td>" +  app.renderId(fstory) + " : " + fstory.get("Name") +"</td>" +
+                return "<tr><td>" +  app.renderId(fstory) + " : " + fstory.get("Name") + app.renderFeatureStoryIterationDate(fstory) + "</td>" +
                 "<td><table>" +
                 _.map(fstory.get("PredStories"),function(pstory){
                     var it = app.getIteration(pstory);
@@ -214,6 +214,16 @@ Ext.define('CustomApp', {
                 '</a>';
         }
         return l.replace(/\"/g,"'");
+    },
+
+    renderFeatureStoryIterationDate : function(fstory) {
+        var fit = app.getIteration(fstory);
+        if (fit===null) {
+            return "<span class = 'iteration-none'> (None)</span>";
+        }
+        var pdt = Rally.util.DateTime.fromIsoString(fit.get("EndDate"));
+        var pdv = (pdt.getMonth()+1) + "/" + pdt.getDate();
+        return "<span> (" + pdv + ")</span>";
     },
 
     renderPredecessorIterationDate : function(fstory,pstory) {
@@ -362,7 +372,8 @@ Ext.define('CustomApp', {
             app.add(grid);
 
             grid.on('iterationsLoaded',function(){
-                grid.store.reload();
+                // grid.store.reload();
+                grid.getView().refresh();
             })
 
         }
