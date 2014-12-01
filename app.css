@@ -72,7 +72,9 @@ table.financial {
     background-color: #ECF6CE;
 }
 .iteration-late {
-    background-color: #FA8258;
+    /*background-color: #FA8258;*/
+    color : white;
+    background-color: #FF0000;
 }
 .iteration-good {
     background-color: #3ADF00;

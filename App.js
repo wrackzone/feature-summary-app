@@ -283,6 +283,7 @@ Ext.define('CustomApp', {
                     { dataIndex : 'FormattedID', text: 'ID', width : 10,flex:1},
                     { dataIndex : 'Name', width : 150,flex:1},
                     { dataIndex : 'Owner', width : 100, flex:1 }
+
             ];
             if (app.showDefects) {
                 columnCfgs.push(app.defectColumn);
@@ -299,6 +300,8 @@ Ext.define('CustomApp', {
                 columnCfgs.push(app.taskActualsColumn);
             }
             if (app.showDependencies) {
+                // notes
+                columnCfgs.push({ dataIndex : 'Notes', width:200,flex:1});
                 columnCfgs.push(app.dependenciesColumn);
             }
 
