@@ -1,11 +1,28 @@
-featuredefectsummary
-=========================
+Feature Summary App
+===================
+
+Barry Mullan (2015)
 
 ## Overview
 
-A grid of features showing defects (open/count) associated with each feature.
+This app can summarize a variety of information for featues in a release. To use, install the app as a 
+custom html on a release filtered dashboard page.
 
-![alt text](https://raw.github.com/wrackzone/feature-defect-summary/master/screenshot.png)
+To configure, select the gear icon and the Edit App Settings menu. 
+
+Defects
+
+![alt text](https://raw.github.com/wrackzone/feature-defect-summary/master/doc/screenshot.png)
+
+Dependencies
+
+![alt text](https://raw.github.com/wrackzone/feature-defect-summary/master/doc/dependencies-screen-shot.png)
+
+Other Configuration Options
+
+![alt text](https://raw.github.com/wrackzone/feature-defect-summary/master/doc/config-screen-shot.png)
+
+
 
 ## License
 
