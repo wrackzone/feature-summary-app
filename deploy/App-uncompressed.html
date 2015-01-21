@@ -213,22 +213,10 @@ Ext.define('CustomApp', {
         var ref = story.get("_ref");
         var l = "null";
         if (!_.isUndefined(ref)) {
-            // console.log("ref",ref)
             l = Rally.nav.DetailLink.getLink({record:story,text:fid});
         } else {
-            // console.log("id story",story);
-
             var l = Rally.nav.DetailLink.getLink({
                 record:{_ref: "/hierarchicalrequirement/"+ story.get("ObjectID")},text:fid });
-            // console.log("link:",l1);
-            // https://rally1.rallydev.com/#/24946380142d/detail/userstory/25125186736
-            // l = '<a href="https://rally1.rallydev.com/#/' + 
-            //     // story.get("Workspace") + 
-            //     app.getContext().getWorkspace()["ObjectID"] + 
-            //     '/detail/userstory/' + 
-            //     story.get("ObjectID") + '"' +
-            //     '>' + fid + 
-            //     '</a>';
         }
         return l.replace(/\"/g,"'");
     },
