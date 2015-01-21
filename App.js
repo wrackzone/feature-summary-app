@@ -203,22 +203,28 @@ Ext.define('CustomApp', {
         var ref = story.get("_ref");
         var l = "null";
         if (!_.isUndefined(ref)) {
+            // console.log("ref",ref)
             l = Rally.nav.DetailLink.getLink({record:story,text:fid});
         } else {
-            console.log("id story",story);
+            // console.log("id story",story);
+
+            var l = Rally.nav.DetailLink.getLink({
+                record:{_ref: "/hierarchicalrequirement/"+ story.get("ObjectID")},text:fid });
+            // console.log("link:",l1);
             // https://rally1.rallydev.com/#/24946380142d/detail/userstory/25125186736
-            l = '<a href="https://rally1.rallydev.com/#/' + 
-                // story.get("Workspace") + 
-                app.getContext().getWorkspace()["ObjectID"] + 
-                '/detail/userstory/' + 
-                story.get("ObjectID") + '"' +
-                '>' + fid + 
-                '</a>';
+            // l = '<a href="https://rally1.rallydev.com/#/' + 
+            //     // story.get("Workspace") + 
+            //     app.getContext().getWorkspace()["ObjectID"] + 
+            //     '/detail/userstory/' + 
+            //     story.get("ObjectID") + '"' +
+            //     '>' + fid + 
+            //     '</a>';
         }
         return l.replace(/\"/g,"'");
     },
 
     renderFeatureStoryIterationDate : function(fstory) {
+
         var fit = app.getIteration(fstory);
         if (fit===null) {
             return "<span class = 'iteration-none'> (None)</span>";
@@ -226,9 +232,11 @@ Ext.define('CustomApp', {
         var pdt = Rally.util.DateTime.fromIsoString(fit.get("EndDate"));
         var pdv = (pdt.getMonth()+1) + "/" + pdt.getDate();
         return "<span> (" + pdv + ")</span>";
+
     },
 
     renderPredecessorIterationDate : function(fstory,pstory) {
+
         var fit = app.getIteration(fstory);
         var pit = app.getIteration(pstory);
 
@@ -606,7 +614,8 @@ Ext.define('CustomApp', {
     getDependencySnapshots : function(record, callback) {
 
         var that = this;
-        var fetch = ['ObjectID','Estimate','ToDo','Actuals','_ItemHierarchy','_TypeHierarchy','Predecessors','Successors','Name','FormattedID','ScheduleState','PlanEstimate','Project','Iteration'];
+        
+        var fetch = ['ObjectID','Estimate','ToDo','Actuals','_ItemHierarchy','_TypeHierarchy','Predecessors','Successors','Name','FormattedID','ScheduleState','PlanEstimate','Project','Iteration','Workspace'];
         var hydrate = ['_TypeHierarchy','ScheduleState'];
         
         var find = {
