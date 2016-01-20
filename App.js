@@ -1,16 +1,20 @@
 var app = null;
 
 Ext.define('CustomApp', {
-    extend: 'Rally.app.App',
+    // extend: 'Rally.app.App',
+    // extend: 'Rally.app.App',
+    extend: 'Rally.app.TimeboxScopedApp',
+    scopeType : 'release',
+
     componentCls: 'app',
     items:{},
 
     config: {
         defaultSettings : {
-            showDefects : false,
-            showBlocked : false,
+            showDefects : true,
+            showBlocked : true,
             showTime : false,
-            showTasks : false,
+            showTasks : true,
             showDependencies : true
         }
     },
@@ -46,7 +50,8 @@ Ext.define('CustomApp', {
         ];
     },
 
-    launch: function() {
+    onScopeChange : function( scope ) {
+    // launch: function() {
         console.log("launch");
         app = this;
         app.iterations = null;
@@ -62,7 +67,7 @@ Ext.define('CustomApp', {
             var record = timeboxScope.getRecord();
             app.releaseName = timeboxScope.getType() === 'release' ? record.get('Name') : null;
         } else {
-            app.releaseName = "Release 1"
+            app.releaseName = "2015 Q1"
         }
         console.log("Release",app.releaseName);
         
@@ -301,7 +306,11 @@ Ext.define('CustomApp', {
                 columnCfgs.push(app.dependenciesColumn);
             }
 
-            var grid = Ext.create('Rally.ui.grid.Grid',
+            if (!_.isUndefined(app.grid)||!_.isNull(app.grid)) {
+                app.remove(app.grid);
+            }
+
+            app.grid = Ext.create('Rally.ui.grid.Grid',
                 {
                 itemId : 'mygrid',
                 height : 800,
@@ -352,7 +361,7 @@ Ext.define('CustomApp', {
 
                             if (app.iterations === null) {
                                 app.loadIterations(features,function(){
-                                    grid.fireEvent("iterationsLoaded");
+                                    app.grid.fireEvent("iterationsLoaded");
                                 });
                             }
 
@@ -363,14 +372,14 @@ Ext.define('CustomApp', {
                  columnCfgs: columnCfgs
              });
             if (app.showTime) {
-                grid.columnCfgs.push(app.timeColumn);
+                app.grid.columnCfgs.push(app.timeColumn);
             }
 
-            app.add(grid);
+            app.add(app.grid);
 
-            grid.on('iterationsLoaded',function(){
+            app.grid.on('iterationsLoaded',function(){
                 // grid.store.reload();
-                grid.getView().refresh();
+                app.grid.getView().refresh();
             })
 
         }
