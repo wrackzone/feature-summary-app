@@ -552,7 +552,7 @@ Ext.define('CustomApp', {
         
         var find = {
                 '_TypeHierarchy' : { "$in" : ["Task"]} ,
-                '_ProjectHierarchy' : { "$in": [app.getContext().getProject().ObjectID] },
+//                '_ProjectHierarchy' : { "$in": [app.getContext().getProject().ObjectID] },
                 '__At' : 'current',
                 "_ItemHierarchy" : { "$in" : [record.get("ObjectID")]  }
         };
